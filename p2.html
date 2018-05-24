@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta charset="utf-8">
+        <title>P2</title>
+        <script src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+        <script src="https://d3js.org/d3-request.v1.min.js"></script>
+        <script src="https://d3js.org/d3-queue.v3.min.js"></script>
+  <style>
+    .axis {
+      font: 10px sans-serif;
+    }
+
+    .axis path,
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+
+    .title
+            {
+                font-family:    Arial, Helvetica, sans-serif;
+                font-size:      20px;
+                font-weight:    bold;
+                text-align: center;
+            }
+  </style>
+</head>
+<body>
+  <div id="title" class ="title"></div>
+  <div id="dropReg" align=center>Seleccionar región: </div>
+  <div id="dropEstudio" align=center>Seleccionar enseñanza: </div>
+  <svg width="960" height="500"></svg>
+  <script>
+
+  var svg = d3.select("svg"),
+      margin = {top: 20, right: 20, bottom: 30, left: 40},
+      width = +svg.attr("width") - margin.left - margin.right,
+      height = +svg.attr("height") - margin.top - margin.bottom,
+      g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  var x0 = d3.scaleBand()
+      .rangeRound([0, width])
+      .paddingInner(0.1);
+
+  var x1 = d3.scaleBand()
+      .padding(0.05);
+
+  var y = d3.scaleLinear()
+      .rangeRound([height, 0]);
+
+  var z = d3.scaleOrdinal()
+      .range(["#98abc5", "#7b6888", "#6b486b", "#ff8c00"]);
+
+  //Regiones para utilizar en el dropdown
+  var regionesPais = [
+    {key: "1", value: "I-Tarapacá"},
+    {key: "15", value: "XV-Arica y Parinacota"},
+    {key: "2" ,  value: "II-Antofagasta"},
+    {key: "3" ,  value: "III-Atacama"},
+    {key: "4" ,  value: "IV-Coquimbo"},
+    {key: "13" ,  value: "RM - Metropolitana de Santiago"},
+    {key: "5" ,  value: "V-Valparaíso"},
+    {key: "6" ,  value: "VI-O'Higgins"},
+    {key: "7" ,  value: "VII-Maule"},
+    {key: "8" ,  value: "VIII-Biobío"},
+    {key: "9" ,  value: "IX-Araucanía"},
+    {key: "14" ,  value: "XIV-Los Ríos"},
+    {key: "10" ,  value: "X-Los Lagos"},
+    {key: "11" ,  value: "XI-Aysén"},
+    {key: "12" ,  value: "XII-Magallanes"}
+    ];
+
+  //Estudios para utilizar en el dropdown
+  var estudiosPais = [
+    {key: "MEDIA", value: "Enseñanza media"},
+    {key: "BASICA", value: "Enseñanza basica"}
+  ];
+
+  //Variables del dataset  
+  var keys = ["PrimeraPrioridad", "SegundaPrioridad", "TerceraPrioridad", "SinInfo"];
+
+  //Variables de datos
+  var data_basica;
+  var data_media;
+
+//Cargar datos
+d3.queue()
+            .defer(d3.csv, "/dataset/IVE-SINAE-MEDIA.csv", function(data){
+              data.COD_COM_EST = +data.COD_COM_EST;
+              data.COD_PROV = +data.COD_PROV;
+              data.COD_REGION = +data.COD_REGION;
+              data.DV_RBD = +data.DV_RBD;
+              data.IVE_SINAE_2016 = +data.IVE_SINAE_2016;
+              data.NO_VULNERABLES = +data.NO_VULNERABLES;
+              data.PRIMERA_PRIORIDAD = +data.PRIMERA_PRIORIDAD;
+              data.RBD = +data.RBD;
+              data.SEGUNDA_PRIORIDAD = +data.SEGUNDA_PRIORIDAD;
+              data.SIN_INFORMACION = +data.SIN_INFORMACION;
+              data.TERCERA_PRIORIDAD = +data.TERCERA_PRIORIDAD; 
+              data.TOTAL_MATRICULA_2015 = +data.TOTAL_MATRICULA_2015;
+              data.tipo = "MEDIA";
+              return data;
+            })
+            .defer(d3.csv, "/dataset/IVE-SINAE-BASICA.csv", function(data){
+              data.COD_COM_EST = +data.COD_COM_EST;
+              data.COD_PROV = +data.COD_PROV;
+              data.COD_REGION = +data.COD_REGION;
+              data.DV_RBD = +data.DV_RBD;
+              data.IVE_SINAE_2016 = +data.IVE_SINAE_2016;
+              data.NO_VULNERABLES = +data.NO_VULNERABLES;
+              data.PRIMERA_PRIORIDAD = +data.PRIMERA_PRIORIDAD;
+              data.RBD = +data.RBD;
+              data.SEGUNDA_PRIORIDAD = +data.SEGUNDA_PRIORIDAD;
+              data.SIN_INFORMACION = +data.SIN_INFORMACION;
+              data.TERCERA_PRIORIDAD = +data.TERCERA_PRIORIDAD; 
+              data.TOTAL_MATRICULA_2015 = +data.TOTAL_MATRICULA_2015;
+              data.tipo = "BASICA";
+              return data;
+            })
+            .await(ready);
+            function ready(error,data1,data2) {
+                if (error) console.log(error);
+
+                //Agrupar datos de basica segun region y dependencia:
+                data_basica = d3.nest()
+                  .key(function(d) { return d.COD_REGION; })
+                  .key(function(d) {return d.DEPENDENCIA; })
+                  .rollup(function(v) { return {
+                    PrimeraPrioridad : d3.sum(v, function(d) {return d.PRIMERA_PRIORIDAD;} ),
+                    SegundaPrioridad : d3.sum(v, function(d) {return d.SEGUNDA_PRIORIDAD;} ),
+                    TerceraPrioridad : d3.sum(v, function(d) {return d.TERCERA_PRIORIDAD;} ),
+                    SinInfo : d3.sum(v, function(d) {return d.SIN_INFORMACION;} )
+                    }})
+                  .entries(data2)
+                  .map(function(d) {
+                    return {
+                      region: d.key,
+                      valores: d.values.map(function(d) {
+                        return {
+                          dependencia: d.key,
+                          PrimeraPrioridad: d.value.PrimeraPrioridad,
+                          SegundaPrioridad: d.value.SegundaPrioridad,
+                          TerceraPrioridad: d.value.TerceraPrioridad,
+                          SinInfo: d.value.SinInfo
+                        }
+                      })
+                    }
+                  }); 
+
+                //Agrupar datos de media segun region y dependencia:
+                data_media = d3.nest()
+                  .key(function(d) { return d.COD_REGION; })
+                  .key(function(d) {return d.DEPENDENCIA; })
+                  .rollup(function(v) { return {
+                    PrimeraPrioridad : d3.sum(v, function(d) {return d.PRIMERA_PRIORIDAD;} ),
+                    SegundaPrioridad : d3.sum(v, function(d) {return d.SEGUNDA_PRIORIDAD;} ),
+                    TerceraPrioridad : d3.sum(v, function(d) {return d.TERCERA_PRIORIDAD;} ),
+                    SinInfo : d3.sum(v, function(d) {return d.SIN_INFORMACION;} )
+                    }})
+                  .entries(data1)
+                  .map(function(d) {
+                    return {
+                      region: d.key,
+                      valores: d.values.map(function(d) {
+                        return {
+                          dependencia: d.key,
+                          PrimeraPrioridad: d.value.PrimeraPrioridad,
+                          SegundaPrioridad: d.value.SegundaPrioridad,
+                          TerceraPrioridad: d.value.TerceraPrioridad,
+                          SinInfo: d.value.SinInfo
+                        }
+                      })
+                    }
+                  });
+
+
+
+
+            //Mostrar por defecto datos de educacion basica de la region metropolitana      
+            data_group = data_basica.find(x => x.region === "13").valores 
+
+            //Definir ejes y dominio  
+            x0.domain(data_group.map(function(d) { return d.dependencia; }));
+            x1.domain(keys).rangeRound([0, x0.bandwidth()]);
+            y.domain([0, d3.max(data_group, function(d) { return d3.max(keys, function(key) { return d[key]; }); })]).nice();
+
+            //Crear y trasladar rectangulos  
+            g.append("g")
+              .selectAll("g")
+              .data(data_group)
+              .enter().append("g")
+                .attr("transform", function(d) { return "translate(" + x0(d.dependencia) + ",0)"; })
+              .selectAll("rect")
+              .data(function(d) { return keys.map(function(key) { return {key: key, value: d[key]}; }); })
+              .enter().append("rect")
+                .attr("x", function(d) { return x1(d.key); })
+                .attr("y", function(d) { return y(d.value); })
+                .attr("width", x1.bandwidth())
+                .attr("height", function(d) { return height - y(d.value); })
+                .attr("fill", function(d) { return z(d.key); });
+
+            //Eje X
+            g.append("g")
+              .attr("class", "axis")
+              .attr("transform", "translate(0," + height + ")")
+              .call(d3.axisBottom(x0));
+
+            //Eje Y  
+            g.append("g")
+                .attr("class", "axis")
+                .call(d3.axisLeft(y).ticks(null, "s"))
+              .append("text")
+                .attr("x", 2)
+                .attr("y", y(y.ticks().pop()) + 0.5)
+                .attr("dy", "0.32em")
+                .attr("fill", "#000")
+                .attr("font-weight", "bold")
+                .attr("text-anchor", "start")
+                .text("Cantidad de alumnos");
+
+            //Crear leyenda
+            valoresLeyenda = ["Primera prioridad", "Segunda prioridad", "Tercera prioridad", "Sin información"]
+            var legend = g.append("g")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", 10)
+                .attr("text-anchor", "end")
+              .selectAll("g")
+              .data(valoresLeyenda.slice().reverse())
+              .enter().append("g")
+                .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+            legend.append("rect")
+                .attr("x", width - 19)
+                .attr("width", 19)
+                .attr("height", 19)
+                .attr("fill", z);
+
+            legend.append("text")
+                .attr("x", width - 24)
+                .attr("y", 9.5)
+                .attr("dy", "0.32em")
+                .text(function(d) { return d; });
+
+
+
+          //Dropdown Regiones
+          var selectorReg = d3.select("#dropReg")
+            .append("select")
+            .attr("id","dropReg")
+            .on("change", function(d){
+                update();
+               });
+
+          //Datos que son mostrados en el dropdown
+          selectorReg.selectAll("option")
+            .data(regionesPais)
+            .enter().append("option")
+            .attr("key", function(d){
+              return d.key;
+            })
+            .text(function(d){
+              return d.value;
+            })      
+            }
+
+
+          //Dropdown Enseñansa
+          var selectorEst = d3.select("#dropEstudio")
+            .append("select")
+            .attr("id","dropEstudio")
+            .on("change", function(d){
+                update();
+               });
+
+          //Datos que son mostrados en el dropdown
+          selectorEst.selectAll("option")
+            .data(estudiosPais)
+            .enter().append("option")
+            .attr("key", function(d){
+              return d.key;
+            })
+            .text(function(d){
+              return d.value;
+            })      
+            
+
+function update() {
+    //Obtener valores del dropdown
+    selectedRegion = d3.select("#dropReg").selectAll("option");
+    selectedEstudio = d3.select("#dropEstudio").selectAll("option");
+
+    //Actualizar datos a utilizar:
+    if (selectedEstudio == "MEDIA"){
+      data_group = data_media.find(x => x.region === selectedRegion.attr("key")).valores; 
+    } else {
+      data_group = data_basica.find(x => x.region === selectedRegion.attr("key")).valores; 
+    }
+
+    //Actualizar titulo:
+    nuevoTitulo = "Distribución de alumnos vulnerables de enseñanza " + selectedEstudio.text() + " en la región " + selectedRegion.text()
+    d3.select("#title")
+      .text(nuevoTitulo);
+
+
+    //Actualizar valores
+    x0.domain(data_group.map(function(d) { return d.dependencia; }));
+    x1.domain(keys).rangeRound([0, x0.bandwidth()]);
+    y.domain([0, d3.max(data_group, function(d) { return d3.max(keys, function(key) { return d[key]; }); })]).nice();
+
+
+    ////Actualizar rectangulos
+    //g.selectAll("g")
+    //  .data(data_basica_group)
+    //  .transition()
+    //  .attr("transform", function(d) { return "translate(" + x0(d.dependencia) + ",0)"; });
+
+  
+    //g.selectAll("rect")
+    //  .data(data_basica_group)
+    //  .transition()
+    //  .attr("x", function(d) { return x1(d.key); })
+    //  .attr("y", function(d) { return y(d.value); })
+    //  .attr("width", x1.bandwidth())
+    //  .attr("height", function(d) { return height - y(d.value); })
+    //  .attr("fill", function(d) { return z(d.key); });
+
+    ////Actualizar eje x
+    //g.selectAll("g")
+    //  .transition()
+    //  .attr("class", "axis")
+    //  .attr("transform", "translate(0," + height + ")")
+    //  .call(d3.axisBottom(x0));
+
+    ////Actualizar eje y  
+    //g.select("text")
+    //  .transition()
+    //    .attr("x", 2)
+    //    .attr("y", y(y.ticks().pop()) + 0.5)
+    //    .attr("dy", "0.32em")
+    //    .attr("fill", "#000")
+    //    .attr("font-weight", "bold")
+    //   .attr("text-anchor", "start")
+    //    .text("Cantidad de alumnos"); 
+}
+
+  </script>
+  </body>
+  </html>
