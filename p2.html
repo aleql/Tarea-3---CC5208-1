@@ -73,6 +73,36 @@
     //Variables de datos
     var data_basica;
     var data_media;
+
+
+
+//Fixdata modifica un arreglo de objetos javascript obtenido a partir de un nest, agregando valores por defecto a los campos vacios
+    function dataFill(datagroup) {
+      //Ordenar datos en orden alfabetico de dependencia
+      datagroup = datagroup.sort(function(x, y){
+         return d3.ascending(x.dependencia, y.dependencia);
+      });
+      //Valores por defecto
+      defaultValues = [
+        {dependencia: "ADMINISTRACIÓN DELEGADA", PrimeraPrioridad: 0, SegundaPrioridad: 0, TerceraPrioridad: 0, SinInfo: 0},
+        {dependencia: "MUNICIPAL - CORPORACIÓN", PrimeraPrioridad: 0, SegundaPrioridad: 0, TerceraPrioridad: 0, SinInfo: 0},
+        {dependencia: "MUNICIPAL - DAEM", PrimeraPrioridad: 0, SegundaPrioridad: 0, TerceraPrioridad: 0, SinInfo: 0},
+        {dependencia: "PARTICULAR SUBVENCIONADO", PrimeraPrioridad: 0, SegundaPrioridad: 0, TerceraPrioridad: 0, SinInfo: 0}   ];
+        finalData = []
+
+        datagroupIndex = 0
+        for (i = 0, l = defaultValues.length; i < l; i++) {
+          if(datagroupIndex == datagroup.length ||
+           defaultValues[i].dependencia != datagroup[datagroupIndex].dependencia){
+            finalData[i] = defaultValues[i];
+          } else {
+            finalData[i] = datagroup[datagroupIndex];
+            datagroupIndex +=1
+          }
+        }
+        return finalData
+    } 
+
   //Cargar datos
   d3.queue()
               .defer(d3.csv, "/dataset/IVE-SINAE-MEDIA.csv", function(data){
@@ -160,6 +190,11 @@
                         })
                       }
                     });
+
+              //Arreglar conjuntos de datos, agregando datos sin conteo
+              data_basica = data_basica.map(x => ({region: x.region, valores: dataFill(x.valores)}))
+              data_media = data_media.map(x => ({region: x.region, valores: dataFill(x.valores)}))      
+
               //Mostrar por defecto datos de educacion basica de la region metropolitana      
               data_group = data_basica.find(x => x.region === "13").valores 
               //Definir ejes y dominio  
@@ -225,6 +260,7 @@
               .on("change", function(d){
                   update();
                  });
+
             //Datos que son mostrados en el dropdown
             selectorReg.selectAll("option")
               .data(regionesPais)
@@ -234,8 +270,9 @@
               })
               .text(function(d){
                 return d.value;
-              })      
-              }
+              })//Dropdown muestre como valor inicial region metropolitana
+              .property("selected", function(d){ return d.value === "RM - Metropolitana de Santiago"; });
+              
             //Dropdown Enseñansa
             var selectorEst = d3.select("#dropEstudio")
               .append("select")
@@ -252,15 +289,18 @@
               })
               .text(function(d){
                 return d.value;
-              })    
+              })//Dropdown muestre como valor inicial enseñanza basica
+              .property("selected", function(d){ return d.value === "Enseñanza basica"; });   
+
+           //Titulo por defecto
+           d3.select("#title")
+          .text("Distribución de alumnos vulnerables de Enseñanza basica en la región RM - Metropolitana de Santiago");
+}
               
   function update() {
       //Obtener valores del dropdown
       selectedRegion = d3.select("#dropReg").select('select').property('value');
       selectedEstudio = d3.select("#dropEstudio").select("select").property('value');
-      //console.log(selectedRegion)
-      //console.log(regionesPais[selectedRegion-1].value)
-
 
       //Actualizar datos a utilizar:
       console.log(selectedEstudio)
@@ -303,7 +343,6 @@
        .call(d3.axisBottom(x0));
 
       // //Actualizar eje y  
-
       d3.selectAll(".y")
        .transition()
        .call(d3.axisLeft(y).ticks(null, "s"))
