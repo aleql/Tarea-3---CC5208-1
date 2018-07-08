@@ -91,8 +91,8 @@
     //Variables del dataset  
     var keys = ["PrimeraPrioridad", "SegundaPrioridad", "TerceraPrioridad", "SinInfo"];
 
-    //Dependencias como string para tooltip
-    var dependenciasTooltip = {
+    //Prioridades como string para tooltip
+    var prioridadTooltip = {
     "PrimeraPrioridad" :"Primera prioridad",
     "SegundaPrioridad" : "Segunda prioridad",
     "TerceraPrioridad" : "Tercera prioridad",
@@ -173,7 +173,7 @@
                 if(d.value != id) { return 0.3;} else { return 0.8; }
               });
 
-            tooltip.html("Dependencia = " + dependenciasTooltip[d.key] + "<br/> Cantidad de alumnos = " + d.value)
+            tooltip.html("Prioridad = " + prioridadTooltip[d.key] + "<br/> Cantidad de alumnos = " + d.value)
                 .style("left", (d3.event.pageX + 5) + "px")
                 .style("top", (d3.event.pageY - 28) + "px")
                 .style("opacity", .9)
