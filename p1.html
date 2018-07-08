@@ -22,8 +22,8 @@
               padding: 2px;             
               font: 12px sans-serif;      
               background: lightsteelblue; 
-              border: 0px;        
-              border-radius: 8px;                   
+              border: 1px solid #000000;       
+              border-radius: 8px;                     
             }
            .title
               {
@@ -96,7 +96,10 @@
             var tooltip = null;
 
             // Crear escala de colores
-            var color = d3.scaleOrdinal(d3.schemePaired);
+            var color = d3.scaleOrdinal() // D3 Version 4
+                        .domain(["MUNICIPAL - DAEM", "PARTICULAR SUBVENCIONADO", "MUNICIPAL - CORPORACIÓN", "ADMINISTRACIÓN DELEGADA"])
+                        .range(["#F2A100", "#0099CC" , "#ED5E5C", "C8E547"]);
+
             
             // Crear canvas
             function canvas() {
