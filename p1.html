@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+    	<meta charset="utf-8">
+        <title>P1</title>
+        <script src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+        <script src="https://d3js.org/d3-request.v1.min.js"></script>
+        <script src="https://d3js.org/d3-queue.v3.min.js"></script>
+        <style>
+            body {
+              font: 11px sans-serif;
+            }
+            .dot {
+              stroke: #000;
+            }
+            .tooltip {
+              position: absolute;
+              text-align: center;   
+              width: 260px;
+              height: auto;
+              pointer-events: none;
+              padding: 2px;             
+              font: 12px sans-serif;      
+              background: lightsteelblue; 
+              border: 0px;        
+              border-radius: 8px;                   
+            }
+           .title
+              {
+                  font-family:    Arial, Helvetica, sans-serif;
+                  font-size:      20px;
+                  font-weight:    bold;
+                  text-align: center;
+              } 
+        </style>
+
+    </head>
+    <body>
+      <div id="title" class ="title">Distribución % de vulnerabilidad IVE-SINAE con respecto a los matriculados en el año 2015</div>
+    	<div id="chart" class="clase1"></div>
+    	<script type="text/javascript">
+            d3.queue()
+            .defer(d3.csv, "IVE-SINAE-MEDIA.csv", function(data){
+              data.COD_COM_EST = +data.COD_COM_EST;
+              data.COD_PROV = +data.COD_PROV;
+              data.COD_REGION = +data.COD_REGION;
+              data.DV_RBD = +data.DV_RBD;
+              data.IVE_SINAE_2016 = +data.IVE_SINAE_2016;
+              data.NO_VULNERABLES = +data.NO_VULNERABLES;
+              data.PRIMERA_PRIORIDAD = +data.PRIMERA_PRIORIDAD;
+              data.RBD = +data.RBD;
+              data.SEGUNDA_PRIORIDAD = +data.SEGUNDA_PRIORIDAD;
+              data.SIN_INFORMACION = +data.SIN_INFORMACION;
+              data.TERCERA_PRIORIDAD = +data.TERCERA_PRIORIDAD; 
+              data.TOTAL_MATRICULA_2015 = +data.TOTAL_MATRICULA_2015;
+              data.tipo = "MEDIA";
+              return data;
+            })
+            .defer(d3.csv, "IVE-SINAE-BASICA.csv", function(data){
+              data.COD_COM_EST = +data.COD_COM_EST;
+              data.COD_PROV = +data.COD_PROV;
+              data.COD_REGION = +data.COD_REGION;
+              data.DV_RBD = +data.DV_RBD;
+              data.IVE_SINAE_2016 = +data.IVE_SINAE_2016;
+              data.NO_VULNERABLES = +data.NO_VULNERABLES;
+              data.PRIMERA_PRIORIDAD = +data.PRIMERA_PRIORIDAD;
+              data.RBD = +data.RBD;
+              data.SEGUNDA_PRIORIDAD = +data.SEGUNDA_PRIORIDAD;
+              data.SIN_INFORMACION = +data.SIN_INFORMACION;
+              data.TERCERA_PRIORIDAD = +data.TERCERA_PRIORIDAD; 
+              data.TOTAL_MATRICULA_2015 = +data.TOTAL_MATRICULA_2015;
+              data.tipo = "BASICA";
+              return data;
+            })
+            .await(ready);
+            function ready(error,data1,data2) {
+                if (error) console.log(error);
+                let arr = [...data1, ...data2];
+                canvas();
+                ejes(data1);
+                dots(data1);
+            }
+            var margin = {
+                top: 20,
+                right: 20,
+                bottom: 30,
+                left: 40
+            };
+            var width = 960 - margin.left - margin.right,
+                height = 500 - margin.top - margin.bottom;
+            var svg = null;
+            var xScale = null;
+            var yScale = null;
+            var xAxis = null;
+            var yAxis = null;
+            var tooltip = null;
+
+            // Crear escala de colores
+            var color = d3.scaleOrdinal(d3.schemePaired);
+            
+            // Crear canvas
+            function canvas() {
+                svg = d3.select("#chart").append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+            }
+            
+            // Crear eje x, eje y y tooltip
+            function ejes(data) {
+                xScale = d3.scaleLinear()
+                    .domain([0, d3.max(data, function(d) {
+                         return +d.TOTAL_MATRICULA_2015
+                     })])
+                    .range([0, width]); 
+                    
+                xAxis = d3.axisBottom(xScale);
+
+                svg.append("g")
+                    .attr("class", "x axis")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(xAxis)
+                  .append("text")
+                    .attr("class", "label")
+                    .attr("transform", "translate(" + ((width / 2) + margin.left) + " ," + margin.bottom + ")") 
+                    .style("text-anchor", "middle")
+                    .text("Total matriculados 2015")
+                    .style("fill", "black");
+  
+                yScale = d3.scaleLinear()
+                    .domain([0, d3.max(data, function(d) {
+                       return d.IVE_SINAE_2016
+                    })])
+                    .range([height, 0]);
+                yAxis =  d3.axisLeft(yScale);
+
+                svg.append("g")
+                    .attr("class", "y axis")
+                    .call(yAxis)
+                  .append("text")
+                    .attr("class", "label")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 0 - margin.left)
+                    .attr("x",0 - (height / 2))
+                    .attr("dy", "1em")
+                    .style("text-anchor", "middle")
+                    .text("% vulnerabilidad IVE-SINAE")
+                    .style("fill", "black");
+
+                // Crear tooltip interactivo
+                tooltip = d3.select("body")
+                    .append("div")
+                    .attr("class", "tooltip")
+                    .style("opacity", 0);
+            }
+            
+            // Crear puntos y leyenda 
+            function dots(data) {
+                var circles = svg.selectAll("circle")
+                .data(data)
+                .enter()
+                .append("circle")
+                .attr("cx", function(d) {
+                        return xScale(d.TOTAL_MATRICULA_2015)
+                    })
+                .attr("cy", function(d) { 
+                        return yScale(d.IVE_SINAE_2016)
+                    })
+                .attr("r", function(d) {
+                    return ((+d.PRIMERA_PRIORIDAD)*100/+d.TOTAL_MATRICULA_2015)*0.1
+                })
+                .style("fill", function(d) {
+                    return color(d.DEPENDENCIA)
+                })
+                .style("opacity", 0.8)
+                .on("mouseover", function(d) {
+                    tooltip.html("Nombre establecimiento = " + d.NOMBRE_ESTABLECIMIENTO + "<br/> Dependencia = " + d.DEPENDENCIA)
+                        .style("left", (d3.event.pageX + 5) + "px")
+                        .style("top", (d3.event.pageY - 28) + "px")
+                        .style("opacity", .9)
+                })
+                .on("mouseout", function(d) {
+                    tooltip.style("opacity", 0)
+                }) 
+                // Crear leyenda
+                var leyenda = svg.selectAll(".leyenda")
+                    .data(color.domain())
+                    .enter()
+                    .append("g")
+
+                    .attr("class", "leyenda")
+                    .attr("transform", function(d, i) {
+                        return "translate(-50," + i * 20 + ")";
+                    });
+
+                leyenda.append("rect")
+                    .attr("x", width - 18)
+                    .attr("width", 18)
+                    .attr("height", 18)
+                    .style("fill", color);
+
+                leyenda.append("text")
+                    .attr("x", width - 24)
+                    .attr("y", 9)
+                    .attr("dy", ".35em")
+                    .style("text-anchor", "end")
+                    .text(function(d) {
+                        return d;
+                    }); 
+            }         
+    	</script>
+    </body>
+</html>
