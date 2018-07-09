@@ -40,7 +40,7 @@
     	<div id="chart" class="clase1"></div>
     	<script type="text/javascript">
             d3.queue()
-            .defer(d3.csv, "IVE-SINAE-MEDIA.csv", function(data){
+            .defer(d3.csv, "/dataset/IVE-SINAE-MEDIA.csv", function(data){
               data.COD_COM_EST = +data.COD_COM_EST;
               data.COD_PROV = +data.COD_PROV;
               data.COD_REGION = +data.COD_REGION;
@@ -56,7 +56,7 @@
               data.tipo = "MEDIA";
               return data;
             })
-            .defer(d3.csv, "IVE-SINAE-BASICA.csv", function(data){
+            .defer(d3.csv, "/dataset/IVE-SINAE-BASICA.csv", function(data){
               data.COD_COM_EST = +data.COD_COM_EST;
               data.COD_PROV = +data.COD_PROV;
               data.COD_REGION = +data.COD_REGION;
